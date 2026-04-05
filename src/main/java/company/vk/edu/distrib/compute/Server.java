@@ -1,7 +1,7 @@
 package company.vk.edu.distrib.compute;
 
 import module java.base;
-import company.vk.edu.distrib.compute.mandesero.KVServiceFactoryImpl;
+import company.vk.edu.distrib.compute.borodinavalera1996dev.KVServiceFactoryImpl;
 import org.slf4j.LoggerFactory;
 
 public class Server {
