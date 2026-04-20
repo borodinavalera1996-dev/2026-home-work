@@ -30,3 +30,5 @@ build/
 
 .idea/
 out/
+
+.vscode/

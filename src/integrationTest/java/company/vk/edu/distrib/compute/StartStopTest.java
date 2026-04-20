@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 @ParameterizedClass
 @ArgumentsSource(KVServiceFactoryArgumentsProvider.class)
 class StartStopTest extends TestBase {
-    private static final HttpClient httpClient = HttpClient.newHttpClient();
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
     @Parameter
@@ -33,7 +33,7 @@ class StartStopTest extends TestBase {
 
     @AfterAll
     public static void afterAll() {
-        httpClient.close();
+        HTTP_CLIENT.close();
     }
 
     private static int status(int port) throws IOException, URISyntaxException, InterruptedException {
@@ -42,7 +42,7 @@ class StartStopTest extends TestBase {
             .uri(new URI("http://localhost:" + port + "/v0/status"))
             .timeout(Duration.ofSeconds(2))
             .build();
-        HttpResponse<Void> response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+        HttpResponse<Void> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
         return response.statusCode();
     }
 
@@ -78,5 +78,10 @@ class StartStopTest extends TestBase {
             storage.stop();
             assertThrows(IOException.class, () -> status(port));
         });
+    }
+
+    @Override
+    protected HttpClient getHttpClient() {
+        return HTTP_CLIENT;
     }
 }

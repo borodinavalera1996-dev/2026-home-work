@@ -5,10 +5,13 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import company.vk.edu.distrib.compute.Dao;
 import company.vk.edu.distrib.compute.KVService;
+import company.vk.edu.distrib.compute.borodinavalera1996dev.cluster.Node;
+import company.vk.edu.distrib.compute.borodinavalera1996dev.hashing.HashingStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.NoSuchElementException;
@@ -21,14 +24,26 @@ public class KVServiceImpl implements KVService {
     public static final String DELETE = "DELETE";
     public static final String PATH_STATUS = "/v0/status";
     public static final String PATH_ENTITY = "/v0/entity";
+    private final InetSocketAddress address;
 
-    private final HttpServer server;
+    private HttpServer server;
     private final Dao<byte[]> dao;
+    private HashingStrategy strategy;
+    private KVProxyClient proxyClient;
+    private String url;
 
     public KVServiceImpl(int port, Dao<byte[]> dao) throws IOException {
         this.dao = dao;
-        server = HttpServer.create(new InetSocketAddress(port), 0);
-        initServer();
+        this.address = new InetSocketAddress(port);
+    }
+
+    public KVServiceImpl(int port, Dao<byte[]> dao, HashingStrategy strategy,
+                         String url, KVProxyClient proxyClient) throws IOException {
+        this.dao = dao;
+        this.address = new InetSocketAddress(port);
+        this.strategy = strategy;
+        this.proxyClient = proxyClient;
+        this.url = url;
     }
 
     private void initServer() {
@@ -49,6 +64,9 @@ public class KVServiceImpl implements KVService {
                 return;
             }
 
+            if (callProxy(exchange, id)) {
+                return;
+            }
             switch (requestMethod) {
                 case GET:
                     byte[] value = dao.get(id);
@@ -68,6 +86,17 @@ public class KVServiceImpl implements KVService {
                     break;
             }
         }));
+    }
+
+    private boolean callProxy(HttpExchange exchange, String id) throws IOException {
+        if (strategy != null) {
+            Node responsibleNode = strategy.getNode(id);
+            if (!responsibleNode.getName().equals(url)) {
+                proxyClient.proxy(exchange, responsibleNode);
+                return true;
+            }
+        }
+        return false;
     }
 
     private HttpHandler wrapHandler(HttpHandler handler) {
@@ -107,13 +136,20 @@ public class KVServiceImpl implements KVService {
 
     @Override
     public void start() {
-        server.start();
-        log.info("Started");
+        try {
+            server = HttpServer.create(address, 0);
+            initServer();
+            server.start();
+            log.info("Started {}", address);
+        } catch (IOException e) {
+            log.error("Server is failed to start in {}", address, e);
+            throw new UncheckedIOException("Server is failed to start", e);
+        }
     }
 
     @Override
     public void stop() {
-        log.info("Stopping");
+        log.info("Stopping {}", address);
         server.stop(0);
     }
 }

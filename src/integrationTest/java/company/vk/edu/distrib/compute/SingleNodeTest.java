@@ -6,23 +6,18 @@ import org.junit.jupiter.params.Parameter;
 import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
-import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.Duration;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.junit.jupiter.api.Assertions.*;
 
 @ParameterizedClass
 @ArgumentsSource(KVServiceFactoryArgumentsProvider.class)
 class SingleNodeTest extends TestBase {
-    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
-    public static final Duration TIMEOUT = Duration.ofSeconds(5);
+
+    static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
     @Parameter
     KVServiceFactory kvServiceFactory;
@@ -30,40 +25,6 @@ class SingleNodeTest extends TestBase {
     @AfterAll
     static void afterAll() {
         HTTP_CLIENT.close();
-    }
-
-    private String url(String endpoint, String id) {
-        return endpoint + "/v0/entity?id=" + id;
-    }
-
-    private HttpResponse<byte[]> get(String endpoint, String key)
-        throws IOException, URISyntaxException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-            .GET()
-            .uri(new URI(url(endpoint, key)))
-            .timeout(Duration.ofSeconds(2))
-            .build();
-        return HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofByteArray());
-    }
-
-    private HttpResponse<Void> delete(String endpoint, String key)
-        throws IOException, URISyntaxException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-            .DELETE()
-            .uri(new URI(url(endpoint, key)))
-            .timeout(TIMEOUT)
-            .build();
-        return HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
-    }
-
-    private HttpResponse<Void> upsert(String endpoint, String key, byte[] data)
-        throws IOException, URISyntaxException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-            .PUT(HttpRequest.BodyPublishers.ofByteArray(data))
-            .uri(new URI(url(endpoint, key)))
-            .timeout(TIMEOUT)
-            .build();
-        return HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.discarding());
     }
 
     @Test
@@ -283,5 +244,10 @@ class SingleNodeTest extends TestBase {
                 storage.stop();
             }
         });
+    }
+
+    @Override
+    protected HttpClient getHttpClient() {
+        return HTTP_CLIENT;
     }
 }
