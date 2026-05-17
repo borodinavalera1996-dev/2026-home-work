@@ -10,10 +10,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class Consensus {
+public final class Consensus {
     private static final Logger LOG = LoggerFactory.getLogger(Consensus.class.getName());
 
     private static final Integer NODES_COUNT = 4;
+
+    private Consensus() {
+        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
 
     public static void main(String[] args) {
         try (ExecutorService executor = Executors.newCachedThreadPool()) {
@@ -29,28 +33,32 @@ public class Consensus {
             for (Node node : allNodes) {
                 executor.execute(node);
             }
-            Random random = new Random();
-            while (true) {
-                TimeUnit.SECONDS.sleep(7);
-
-                int nodeId = random.nextInt(NODES_COUNT);
-                Node target = allNodes.get(nodeId);
-
-                if (target.isEnabled()) {
-                    if (LOG.isInfoEnabled()) {
-                        LOG.info("Node {} is down", target.getId());
-                    }
-                    target.setEnabled(false);
-                } else {
-                    if (LOG.isInfoEnabled()) {
-                        LOG.info("Node {} is up", target.getId());
-                    }
-                    target.setEnabled(true);
-                    target.startElection();
-                }
-            }
+            run(allNodes);
         } catch (InterruptedException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    private static void run(List<Node> allNodes) throws InterruptedException {
+        Random random = new Random();
+        while (true) {
+            TimeUnit.SECONDS.sleep(7);
+
+            int nodeId = random.nextInt(NODES_COUNT);
+            Node target = allNodes.get(nodeId);
+
+            if (target.isEnabled()) {
+                if (LOG.isInfoEnabled()) {
+                    LOG.info("Node {} is down", target.getId());
+                }
+                target.setEnabled(false);
+            } else {
+                if (LOG.isInfoEnabled()) {
+                    LOG.info("Node {} is up", target.getId());
+                }
+                target.setEnabled(true);
+                target.startElection();
+            }
         }
     }
 }

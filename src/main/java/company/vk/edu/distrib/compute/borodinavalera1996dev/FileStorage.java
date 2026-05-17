@@ -8,10 +8,10 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.NoSuchElementException;
-import java.util.Objects;
+import java.util.concurrent.locks.ReentrantLock;
 
 public record FileStorage(Path path) {
-    private static final Object INSTANCE_LOCK = new Object();
+    private static final ReentrantLock LOCK = new ReentrantLock();
 
     public record Data(byte[] value, Instant time, Boolean deleted) {
     }
@@ -35,9 +35,12 @@ public record FileStorage(Path path) {
             buffer.put((byte) 0);
             buffer.putLong(data.time.toEpochMilli());
             buffer.put(data.value);
-            synchronized (INSTANCE_LOCK) {
+            LOCK.lock();
+            try {
                 Files.write(filePath, buffer.array(),
                         StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            } finally {
+                LOCK.unlock();
             }
         } catch (IOException e) {
             throw new UncheckedIOException("Error save", e);
@@ -89,9 +92,12 @@ public record FileStorage(Path path) {
             ByteBuffer buffer = ByteBuffer.allocate(1 + Long.BYTES);
             buffer.put((byte) 1);
             buffer.putLong(Instant.now().toEpochMilli());
-            synchronized (INSTANCE_LOCK) {
+            LOCK.lock();
+            try {
                 Files.write(filePath, buffer.array(),
                         StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            } finally {
+                LOCK.unlock();
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

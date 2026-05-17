@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class Node implements Runnable {
@@ -16,7 +17,7 @@ public class Node implements Runnable {
     private final List<Node> allNodes;
     private final BlockingQueue<Message> queue = new LinkedBlockingQueue<>();
 
-    private volatile int currentLeaderId = -1;
+    private final AtomicInteger currentLeaderId = new AtomicInteger(-1);
     private final AtomicBoolean isRunning = new AtomicBoolean(true);
     private final AtomicBoolean waitingForAnswer = new AtomicBoolean(false);
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -37,7 +38,9 @@ public class Node implements Runnable {
                     handleMessage(msg);
                 }
             } catch (InterruptedException e) {
-                LOG.error(e.getMessage());
+                if (LOG.isErrorEnabled()) {
+                    LOG.error(e.getMessage());
+                }
                 Thread.currentThread().interrupt();
             }
         }
@@ -52,7 +55,7 @@ public class Node implements Runnable {
                 }
             }
             case VICTORY -> {
-                this.currentLeaderId = msg.idNode();
+                this.currentLeaderId.set(msg.idNode());
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Node {}: New leader is {}", id, currentLeaderId);
                 }
@@ -95,18 +98,22 @@ public class Node implements Runnable {
     }
 
     private void becomeLeader() {
-        this.currentLeaderId = id;
+        this.currentLeaderId.set(id);
         allNodes.forEach(n -> n.receive(new Message(id, Message.Type.VICTORY)));
     }
 
     private void startHealthCheck() {
         scheduler.scheduleAtFixedRate(() -> {
-            if (!isRunning.get()) return;
-            if (currentLeaderId == -1) {
+            if (!isRunning.get()) {
+                return;
+            }
+            if (currentLeaderId.get() == -1) {
                 startElection();
                 return;
             }
-            if (currentLeaderId == id) return;
+            if (currentLeaderId.get() == id) {
+                return;
+            }
 
             long now = System.currentTimeMillis();
 
@@ -114,10 +121,10 @@ public class Node implements Runnable {
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Node {}: Leader {} timeout! Starting election...", id, currentLeaderId);
                 }
-                currentLeaderId = -1;
+                currentLeaderId.set(-1);
                 startElection();
             } else {
-                send(currentLeaderId, Message.Type.PING);
+                send(currentLeaderId.get(), Message.Type.PING);
             }
         }, 1, 1, TimeUnit.SECONDS);
     }

@@ -13,7 +13,6 @@ import java.util.stream.Stream;
 public class KVServiceFactoryArgumentsProvider implements ArgumentsProvider {
 
     private final Set<Class<? extends KVServiceFactory>> factories = Set.of(
-            company.vk.edu.distrib.compute.mandesero.KVServiceFactoryImpl.class,
             company.vk.edu.distrib.compute.borodinavalera1996dev.KVServiceFactoryImpl.class
     );
 
