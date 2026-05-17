@@ -53,7 +53,9 @@ public class Node implements Runnable {
             }
             case VICTORY -> {
                 this.currentLeaderId = msg.idNode();
-                LOG.debug("Node {}: New leader is {}", id, currentLeaderId);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Node {}: New leader is {}", id, currentLeaderId);
+                }
             }
             case PING -> {
                 send(msg.idNode(), Message.Type.ANSWER);
@@ -72,7 +74,9 @@ public class Node implements Runnable {
     }
 
     public void startElection() {
-        LOG.debug("Node {} starts election", id);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("Node {} starts election", id);
+        }
         List<Node> higherNodes = allNodes.stream()
                 .filter(n -> n.id > this.id)
                 .toList();
@@ -109,7 +113,9 @@ public class Node implements Runnable {
             long now = System.currentTimeMillis();
 
             if (now - lastLeaderResponseTime.get() > TIMEOUT_MS) {
-                LOG.debug("Node {}: Leader {} timeout! Starting election...", id, currentLeaderId);
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Node {}: Leader {} timeout! Starting election...", id, currentLeaderId);
+                }
                 currentLeaderId = -1;
                 startElection();
             } else {

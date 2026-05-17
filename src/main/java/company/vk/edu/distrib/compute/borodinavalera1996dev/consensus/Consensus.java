@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class Consensus {
@@ -14,6 +16,8 @@ public class Consensus {
     private static final Integer NODES_COUNT = 4;
 
     public static void main(String[] args) {
+        ExecutorService executor = Executors.newCachedThreadPool();
+
         try {
             List<Node> allNodes = new ArrayList<>();
             List<Thread> threads = new ArrayList<>();
@@ -22,11 +26,11 @@ public class Consensus {
                 allNodes.add(new Node(i, allNodes));
             }
 
-            LOG.info("Cluster initialization");
+            if (LOG.isInfoEnabled()) {
+                LOG.info("Cluster initialization");
+            }
             for (Node node : allNodes) {
-                Thread t = new Thread(node, "Node-" + node.getId());
-                threads.add(t);
-                t.start();
+                executor.execute(node);
             }
             Random random = new Random();
             while (true) {
@@ -36,16 +40,22 @@ public class Consensus {
                 Node target = allNodes.get(nodeId);
 
                 if (target.isEnabled()) {
-                    LOG.info("Node {} is down", target.getId());
+                    if (LOG.isInfoEnabled()) {
+                        LOG.info("Node {} is down", target.getId());
+                    }
                     target.setEnabled(false);
                 } else {
-                    LOG.info("Node {} is up", target.getId());
+                    if (LOG.isInfoEnabled()) {
+                        LOG.info("Node {} is up", target.getId());
+                    }
                     target.setEnabled(true);
                     target.startElection();
                 }
             }
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
+        } finally {
+            executor.shutdown();
         }
     }
 }
