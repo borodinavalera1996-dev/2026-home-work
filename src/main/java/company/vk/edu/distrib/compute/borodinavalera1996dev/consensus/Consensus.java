@@ -16,11 +16,8 @@ public class Consensus {
     private static final Integer NODES_COUNT = 4;
 
     public static void main(String[] args) {
-        ExecutorService executor = Executors.newCachedThreadPool();
-
-        try {
+        try (ExecutorService executor = Executors.newCachedThreadPool()) {
             List<Node> allNodes = new ArrayList<>();
-            List<Thread> threads = new ArrayList<>();
 
             for (int i = 1; i <= NODES_COUNT; i++) {
                 allNodes.add(new Node(i, allNodes));
@@ -54,8 +51,6 @@ public class Consensus {
             }
         } catch (InterruptedException e) {
             throw new IllegalStateException(e);
-        } finally {
-            executor.shutdown();
         }
     }
 }

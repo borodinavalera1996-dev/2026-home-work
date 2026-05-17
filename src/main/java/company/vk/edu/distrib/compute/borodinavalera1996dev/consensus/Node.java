@@ -57,12 +57,10 @@ public class Node implements Runnable {
                     LOG.debug("Node {}: New leader is {}", id, currentLeaderId);
                 }
             }
-            case PING -> {
+            case PING ->
                 send(msg.idNode(), Message.Type.ANSWER);
-            }
-            case ANSWER -> {
+            case ANSWER ->
                 waitingForAnswer.set(true);
-            }
         }
     }
 
