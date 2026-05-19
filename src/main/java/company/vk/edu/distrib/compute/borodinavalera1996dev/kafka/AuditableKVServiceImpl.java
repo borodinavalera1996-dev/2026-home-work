@@ -87,7 +87,7 @@ public class AuditableKVServiceImpl implements AuditableKVService {
                 producer.flush();
                 producer.close(Duration.ofSeconds(3));
             } catch (Exception e) {
-                // ignore
+                log.error("Exception by closing kafka producer", e);
             }
         }
         termination.complete(null);
